@@ -1,1022 +1,482 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8" />
-  <title>Havenkaart Rotterdam – PWA</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="Havenkaart" />
-
-  <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="icons/icon-192.png" />
-
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Garage App – Prototype v1</title>
   <style>
-    * { box-sizing: border-box; }
-    html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        sans-serif;
+    :root{
+      --bg:#0f1115; --card:#171a21; --muted:#a8b0bf; --text:#eef2fb;
+      --line:rgba(255,255,255,.08);
+      --good:#3ddc84; --warn:#ffcc00; --bad:#ff4d4d;
     }
-
-    :root {
-      --bg-header: #111827;
-      --bg-chip: #1f2937;
-      --bg-pill: #111827;
-      --bg-body: #020617;
-      --bg-form: rgba(17, 24, 39, 0.97);
-      --bg-input: #020617;
-      --border-input: #374151;
-      --text-main: #e5e7eb;
-      --text-subtle: #9ca3af;
-      --shadow-strong: 0 10px 40px rgba(0, 0, 0, 0.4);
-      --bg-dropdown: #020617;
-      --border-dropdown: #4b5563;
+    *{box-sizing:border-box}
+    body{
+      margin:0; font:16px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      background:var(--bg); color:var(--text);
     }
-
-    body.theme-dark {
-      --bg-header: #111827;
-      --bg-chip: #1f2937;
-      --bg-pill: #111827;
-      --bg-body: #020617;
-      --bg-form: rgba(17, 24, 39, 0.97);
-      --bg-input: #020617;
-      --border-input: #374151;
-      --text-main: #e5e7eb;
-      --text-subtle: #9ca3af;
-      --shadow-strong: 0 10px 40px rgba(0, 0, 0, 0.4);
-      --bg-dropdown: #020617;
-      --border-dropdown: #4b5563;
+    .app{max-width:520px; margin:0 auto; padding:16px 14px 88px;}
+    .topbar{display:flex; align-items:center; justify-content:space-between; gap:12px; margin:6px 0 14px;}
+    .title{font-size:18px; font-weight:700; letter-spacing:.2px}
+    .sub{font-size:13px; color:var(--muted); margin-top:2px}
+    .pill{
+      border:1px solid var(--line); background:transparent; color:var(--text);
+      padding:10px 12px; border-radius:14px; font-weight:650; cursor:pointer;
     }
-
-    body.theme-light {
-      --bg-header: #f3f4f6;
-      --bg-chip: #e5e7eb;
-      --bg-pill: #ffffff;
-      --bg-body: #ffffff;
-      --bg-form: rgba(243, 244, 246, 0.98);
-      --bg-input: #f9fafb;
-      --border-input: #d1d5db;
-      --text-main: #111827;
-      --text-subtle: #6b7280;
-      --shadow-strong: 0 10px 30px rgba(15, 23, 42, 0.15);
-      --bg-dropdown: #ffffff;
-      --border-dropdown: #d1d5db;
+    .pill:active{transform:translateY(1px)}
+    .primary{
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.12);
     }
-
-    body {
-      display: flex;
-      flex-direction: column;
-      background: var(--bg-body);
-      color: var(--text-main);
+    .stack{display:flex; flex-direction:column; gap:10px;}
+    .card{
+      background:var(--card); border:1px solid var(--line);
+      border-radius:16px; padding:14px 14px;
     }
-
-    header {
-      padding: 8px 12px;
-      background: var(--bg-header);
-      color: var(--text-main);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      font-size: 14px;
-      border-bottom: 1px solid rgba(148, 163, 184, 0.4);
+    .row{display:flex; align-items:center; justify-content:space-between; gap:12px;}
+    .h{font-weight:750}
+    .meta{color:var(--muted); font-size:13px; margin-top:6px}
+    .chip{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:7px 10px; border-radius:999px; border:1px solid var(--line);
+      font-size:13px; color:var(--muted);
     }
-
-    header h1 {
-      margin: 0;
-      font-size: 16px;
-      font-weight: 600;
+    .dot{width:10px; height:10px; border-radius:50%}
+    .btn{
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      font-weight:700;
+      cursor:pointer;
+      min-width:92px;
+      text-align:center;
     }
-
-    header small {
-      color: var(--text-subtle);
-      font-size: 12px;
+    .btn:active{transform:translateY(1px)}
+    .footerNav{
+      position:fixed; left:0; right:0; bottom:0;
+      padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+      background:rgba(15,17,21,.88);
+      backdrop-filter: blur(10px);
+      border-top:1px solid var(--line);
     }
-
-    #controls {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      align-items: flex-end;
-      font-size: 12px;
+    .navInner{max-width:520px; margin:0 auto; display:flex; gap:10px;}
+    .navInner .btn{flex:1; min-width:0}
+    .screen{display:none}
+    .screen.active{display:block}
+    .sectionTitle{font-size:13px; color:var(--muted); margin:14px 2px 8px}
+    .field{
+      display:flex; flex-direction:column; gap:6px;
+      padding:12px; border-radius:14px; border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
     }
-
-    #controls-top {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-      justify-content: flex-end;
+    label{font-size:12px; color:var(--muted)}
+    input, select, textarea{
+      width:100%;
+      font:inherit;
+      color:var(--text);
+      background:transparent;
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:12px;
+      padding:10px 12px;
+      outline:none;
     }
-
-    #controls-bottom {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: flex-end;
-      justify-content: flex-end;
+    textarea{min-height:90px; resize:vertical}
+    details{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      border-radius:14px;
+      overflow:hidden;
     }
-
-    .cat-filter-group {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      padding: 4px 6px;
-      background: var(--bg-chip);
-      border-radius: 999px;
+    summary{
+      list-style:none;
+      cursor:pointer;
+      padding:12px 12px;
+      font-weight:750;
+      display:flex; align-items:center; justify-content:space-between;
     }
-
-    .cat-pill {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 3px 8px;
-      border-radius: 999px;
-      background: var(--bg-pill);
-      color: var(--text-main);
-      border: 1px solid rgba(148, 163, 184, 0.3);
-    }
-
-    .cat-pill input { margin: 0; }
-
-    .cat-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 999px;
-      background: #6b7280;
-    }
-
-    .cat-dot[data-cat="landtank"] { background: #f97316; }
-    .cat-dot[data-cat="steiger"] { background: #3b82f6; }
-    .cat-dot[data-cat="installatie"] { background: #22c55e; }
-    .cat-dot[data-cat="pompkamer"] { background: #ef4444; }
-    .cat-dot[data-cat="leiding"] { background: #a855f7; }
-
-    #map-container {
-      position: relative;
-      flex: 1 1 auto;
-      width: 100%;
-    }
-
-    #map {
-      width: 100%;
-      height: 100%;
-    }
-
-    #info-bar {
-      font-size: 11px;
-      color: var(--text-subtle);
-    }
-
-    #info-bar strong {
-      color: var(--text-main);
-    }
-
-    .btn {
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.5);
-      cursor: pointer;
-      background: transparent;
-      color: var(--text-main);
-      font-size: 11px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .btn:hover {
-      background: rgba(148, 163, 184, 0.15);
-    }
-
-    .btn-primary {
-      background: #4b5563;
-      border-color: #4b5563;
-      color: #f9fafb;
-    }
-
-    .btn-primary:hover {
-      background: #6b7280;
-      border-color: #6b7280;
-    }
-
-    .btn-danger {
-      border-color: #b91c1c;
-      color: #fecaca;
-    }
-
-    .btn-danger:hover {
-      background: rgba(239, 68, 68, 0.15);
-    }
-
-    .btn-icon {
-      padding: 4px 8px;
-      border-radius: 999px;
-      font-size: 14px;
-      line-height: 1;
-    }
-
-    #data-menu-wrapper {
-      position: relative;
-    }
-
-    .dropdown-menu {
-      position: absolute;
-      right: 0;
-      bottom: 120%;
-      background: var(--bg-dropdown);
-      border: 1px solid var(--border-dropdown);
-      border-radius: 10px;
-      box-shadow: var(--shadow-strong);
-      padding: 4px;
-      min-width: 150px;
-      display: none;
-      z-index: 1200;
-    }
-
-    .dropdown-item {
-      width: 100%;
-      border-radius: 8px;
-      border: none;
-      background: transparent;
-      color: var(--text-main);
-      font-size: 11px;
-      text-align: left;
-      padding: 6px 8px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .dropdown-item:hover {
-      background: rgba(148, 163, 184, 0.18);
-    }
-
-    #form-panel {
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      bottom: 10px;
-      width: min(480px, 94%);
-      background: var(--bg-form);
-      color: var(--text-main);
-      border-radius: 10px;
-      box-shadow: var(--shadow-strong);
-      padding: 10px 12px;
-      font-size: 13px;
-      z-index: 1000;
-      display: none;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-    }
-
-    #form-panel h2 {
-      margin: 0 0 4px;
-      font-size: 14px;
-    }
-
-    #form-panel small {
-      color: var(--text-subtle);
-    }
-
-    .badge-coord {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      background: var(--bg-pill);
-      border-radius: 999px;
-      padding: 2px 8px;
-      font-size: 11px;
-      border: 1px solid var(--border-input);
-      color: var(--text-subtle);
-      margin-top: 4px;
-    }
-
-    label {
-      display: block;
-      font-size: 11px;
-      color: var(--text-subtle);
-      margin-bottom: 2px;
-    }
-
-    input[type="text"],
-    textarea,
-    select {
-      width: 100%;
-      padding: 4px 6px;
-      border-radius: 6px;
-      border: 1px solid var(--border-input);
-      background: var(--bg-input);
-      color: var(--text-main);
-      font-size: 12px;
-      outline: none;
-    }
-
-    input[type="text"]:focus,
-    textarea:focus,
-    select:focus {
-      border-color: #60a5fa;
-      box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.3);
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 40px;
-      max-height: 110px;
-    }
-
-    .form-row {
-      display: flex;
-      gap: 8px;
-      margin-top: 6px;
-    }
-
-    .form-row > div {
-      flex: 1;
-    }
-
-    #form-actions {
-      display: flex;
-      justify-content: space-between;
-      gap: 6px;
-      margin-top: 8px;
-      align-items: center;
-    }
-
-    #theme-toggle-btn span {
-      font-size: 14px;
-    }
-
-    .popup-meta {
-      font-size: 10px;
-      color: #6b7280;
-      margin-top: 4px;
-    }
-
-    .popup-edit-hint {
-      font-size: 11px;
-      margin-top: 6px;
-      color: #6b7280;
-    }
-
-    .popup-edit-hint button {
-      font-size: 11px;
-      padding: 3px 6px;
-      border-radius: 999px;
-      border: 1px solid rgba(148, 163, 184, 0.6);
-      background: transparent;
-      cursor: pointer;
-    }
-
-    @media (max-width: 960px) {
-      header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 6px;
-      }
-      #controls {
-        width: 100%;
-        align-items: flex-start;
-      }
-      #controls-top,
-      #controls-bottom {
-        justify-content: space-between;
-        width: 100%;
-      }
-    }
-
-    @media (max-width: 640px) {
-      .cat-filter-group { width: 100%; }
-      #info-bar { margin-top: 4px; }
-      #controls-bottom { align-items: flex-start; }
-    }
+    summary::-webkit-details-marker{display:none}
+    .detailsBody{padding:0 12px 12px; color:var(--muted)}
+    .kpi{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
+    .kpi .chip{color:var(--text)}
+    .muted{color:var(--muted)}
+    .spacer{height:8px}
+    .danger{border-color:rgba(255,77,77,.25)}
+    .ok{border-color:rgba(61,220,132,.25)}
+    .warn{border-color:rgba(255,204,0,.25)}
   </style>
 </head>
-<body class="theme-dark">
-  <header>
-    <div>
-      <h1>Havenkaart Rotterdam</h1>
-      <small>Maasvlakte – Europoort – Botlek – Pernis – Dordrecht</small>
-    </div>
-    <div id="controls">
-      <div id="controls-top">
-        <div class="cat-filter-group">
-          <span style="font-size:11px;color:var(--text-subtle);">Categorieën:</span>
-          <label class="cat-pill">
-            <input type="checkbox" class="cat-checkbox" data-cat="landtank" checked />
-            <span class="cat-dot" data-cat="landtank"></span> Landtanks
-          </label>
-          <label class="cat-pill">
-            <input type="checkbox" class="cat-checkbox" data-cat="steiger" checked />
-            <span class="cat-dot" data-cat="steiger"></span> Steigers
-          </label>
-          <label class="cat-pill">
-            <input type="checkbox" class="cat-checkbox" data-cat="installatie" checked />
-            <span class="cat-dot" data-cat="installatie"></span> Installaties
-          </label>
-          <label class="cat-pill">
-            <input type="checkbox" class="cat-checkbox" data-cat="pompkamer" checked />
-            <span class="cat-dot" data-cat="pompkamer"></span> Pompkamers
-          </label>
-          <label class="cat-pill">
-            <input type="checkbox" class="cat-checkbox" data-cat="leiding" checked />
-            <span class="cat-dot" data-cat="leiding"></span> Leidingen
-          </label>
-        </div>
-      </div>
-      <div id="controls-bottom">
-        <div id="info-bar">
-          <strong><span id="point-count">0</span></strong> kliks · tik op de kaart om een
-          nieuwe klik toe te voegen
-        </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end;flex-direction:column;">
-          <div id="data-menu-wrapper">
-            <button
-              class="btn btn-icon"
-              id="data-menu-toggle"
-              type="button"
-              title="Opslaan / laden"
-            >
-              📁
-            </button>
-            <div id="data-menu" class="dropdown-menu">
-              <button class="dropdown-item" id="download-json-btn" type="button">
-                💾 <span>Download kliks</span>
-              </button>
-              <button class="dropdown-item" id="upload-json-btn" type="button">
-                📂 <span>JSON laden</span>
-              </button>
-            </div>
-            <input
-              type="file"
-              id="upload-json-input"
-              accept="application/json"
-              style="display:none;"
-            />
-          </div>
-          <button
-            class="btn"
-            id="theme-toggle-btn"
-            type="button"
-            title="Schakel donker/licht modus (en kaart)"
-          >
-            <span id="theme-icon">🌙</span>
-            <span id="theme-label">Donkere modus</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </header>
+<body>
+  <div class="app">
 
-  <div id="map-container">
-    <div id="map"></div>
-
-    <div id="form-panel">
-      <h2 id="form-title">Nieuwe klik toevoegen</h2>
-      <small id="form-subtitle">
-        Kies de categorie (landtank, steiger, installatie, pompkamer, leiding) en voeg info
-        toe.
-      </small>
-
-      <div class="badge-coord" id="coord-label">
-        Lat: -, Lng: -
-      </div>
-
-      <div class="form-row">
+    <!-- SCHERM 1: Vandaag -->
+    <section id="screen-today" class="screen active">
+      <div class="topbar">
         <div>
-          <label for="punt-naam">Naam / referentie</label>
-          <input
-            type="text"
-            id="punt-naam"
-            placeholder="Bijv. Tank 301 / Steiger 4 / Leiding A-12"
-          />
+          <div class="title">Vandaag</div>
+          <div id="todayDate" class="sub"></div>
         </div>
-        <div>
-          <label for="punt-cat">Categorie</label>
-          <select id="punt-cat">
-            <option value="landtank">Landtank</option>
-            <option value="steiger">Steiger</option>
-            <option value="installatie">Installatie</option>
-            <option value="pompkamer">Pompkamer</option>
-            <option value="leiding">Leiding</option>
+        <button class="pill primary" id="btnNewJob">+ Nieuwe klus</button>
+      </div>
+
+      <div class="sectionTitle">Werk voor vandaag</div>
+      <div id="todayList" class="stack"></div>
+    </section>
+
+    <!-- SCHERM 2: Klus detail -->
+    <section id="screen-job" class="screen">
+      <div class="topbar">
+        <button class="pill" id="btnBackToToday">← Vandaag</button>
+        <div style="flex:1; min-width:0">
+          <div id="jobTitle" class="title" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Klus</div>
+          <div id="jobSub" class="sub"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row">
+          <div class="h">Status</div>
+          <select id="jobStatus">
+            <option value="bezig">Bezig</option>
+            <option value="wachten">Wachten</option>
+            <option value="klaar">Klaar</option>
           </select>
         </div>
-      </div>
 
-      <div style="margin-top:6px;">
-        <label for="punt-info">Info / notitie</label>
-        <textarea
-          id="punt-info"
-          placeholder="Beschrijving, bijzonderheden, acties..."
-        ></textarea>
-      </div>
-
-      <div id="form-actions">
-        <button class="btn btn-danger" id="delete-btn" type="button" style="display:none;">
-          Klik verwijderen
-        </button>
-        <div style="display:flex;gap:6px;">
-          <button class="btn" id="cancel-btn" type="button">Annuleren</button>
-          <button class="btn btn-primary" id="save-btn" type="button">Opslaan</button>
+        <div class="kpi">
+          <span id="chipStatus" class="chip"><span class="dot" id="chipDot"></span><span id="chipText">—</span></span>
+          <span class="chip">Laatste update: <span id="chipUpdated">—</span></span>
         </div>
       </div>
+
+      <div class="spacer"></div>
+
+      <details>
+        <summary>Werkzaamheden <span class="muted">▾</span></summary>
+        <div class="detailsBody">
+          <div class="field">
+            <label>Notities</label>
+            <textarea id="jobWork" placeholder="Bijv: olie + filter, bougies, uitlezen foutcodes..."></textarea>
+          </div>
+        </div>
+      </details>
+
+      <div class="spacer"></div>
+
+      <details>
+        <summary>Onderdelen / kosten <span class="muted">▾</span></summary>
+        <div class="detailsBody">
+          <div class="field">
+            <label>Onderdelen</label>
+            <textarea id="jobParts" placeholder="Bijv: remblokken €80, filterset €35..."></textarea>
+          </div>
+        </div>
+      </details>
+
+      <div class="spacer"></div>
+
+      <details>
+        <summary>Tijdregistratie <span class="muted">▾</span></summary>
+        <div class="detailsBody">
+          <div class="field">
+            <label>Uren</label>
+            <input id="jobHours" type="number" step="0.25" min="0" placeholder="Bijv: 1.5" />
+          </div>
+        </div>
+      </details>
+
+      <div class="spacer"></div>
+
+      <div class="card">
+        <div class="row">
+          <button class="btn" id="btnMarkDone">✔ Markeer als klaar</button>
+          <button class="btn" id="btnToArchive">📁 Naar archief</button>
+        </div>
+        <div class="meta">Prototype: opslag in je browser (localStorage).</div>
+      </div>
+    </section>
+
+    <!-- SCHERM 3: Archief -->
+    <section id="screen-archive" class="screen">
+      <div class="topbar">
+        <div>
+          <div class="title">Archief</div>
+          <div class="sub">Afgeronde klussen</div>
+        </div>
+        <button class="pill" id="btnClearArchive">Leeg</button>
+      </div>
+
+      <div class="sectionTitle">Klaar</div>
+      <div id="archiveList" class="stack"></div>
+    </section>
+
+  </div>
+
+  <div class="footerNav">
+    <div class="navInner">
+      <button class="btn" id="navToday">Vandaag</button>
+      <button class="btn" id="navArchive">Archief</button>
     </div>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js').catch((err) => {
-          console.warn('SW registratie mislukt:', err);
-        });
-      });
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  const screens = {
+    today: $("screen-today"),
+    job: $("screen-job"),
+    archive: $("screen-archive"),
+  };
+
+  const STORAGE_KEY = "garage_prototype_v1";
+
+  const statusInfo = {
+    bezig:   { label: "bezig",   dot: "var(--warn)",  cls: "warn" },
+    wachten:{ label: "wachten", dot: "var(--bad)",   cls: "danger" },
+    klaar:  { label: "klaar",   dot: "var(--good)",  cls: "ok" },
+  };
+
+  const nowDateLine = () => {
+    const d = new Date();
+    return d.toLocaleDateString("nl-NL", { weekday:"long", day:"2-digit", month:"long", year:"numeric" });
+  };
+
+  function loadState(){
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      try { return JSON.parse(raw); } catch(e) {}
     }
-
-    const STORAGE_POINTS_KEY = "havenkaart-punten-v1";
-    const STORAGE_THEME_KEY = "havenkaart-theme-v2";
-    const STORAGE_FILTERS_KEY = "havenkaart-filters-v1";
-
-    const bodyEl = document.body;
-    const themeToggleBtn = document.getElementById("theme-toggle-btn");
-    const themeIcon = document.getElementById("theme-icon");
-    const themeLabel = document.getElementById("theme-label");
-
-    function applyTheme(theme) {
-      if (theme === "light") {
-        bodyEl.classList.remove("theme-dark");
-        bodyEl.classList.add("theme-light");
-        themeIcon.textContent = "☀️";
-        themeLabel.textContent = "Lichte modus";
-      } else {
-        bodyEl.classList.remove("theme-light");
-        bodyEl.classList.add("theme-dark");
-        themeIcon.textContent = "🌙";
-        themeLabel.textContent = "Donkere modus";
-      }
-    }
-
-    const map = L.map("map");
-    const centerLatLng = [51.9, 4.25];
-    map.setView(centerLatLng, 11);
-
-    const lightOSM = L.tileLayer(
-      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      {
-        maxZoom: 19,
-        attribution: "© OpenStreetMap-bijdragers"
-      }
-    );
-
-    const darkGray = L.tileLayer(
-      "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
-      {
-        maxZoom: 19,
-        attribution: "Tiles © Esri — Esri, DeLorme, NAVTEQ"
-      }
-    );
-
-    let currentBaseLayer = null;
-
-    function setBaseLayerForTheme(theme) {
-      const desired = theme === "light" ? lightOSM : darkGray;
-      if (currentBaseLayer && map.hasLayer(currentBaseLayer)) {
-        map.removeLayer(currentBaseLayer);
-      }
-      desired.addTo(map);
-      currentBaseLayer = desired;
-    }
-
-    const storedTheme = window.localStorage
-      ? localStorage.getItem(STORAGE_THEME_KEY)
-      : null;
-    const initialTheme =
-      storedTheme === "light" || storedTheme === "dark" ? storedTheme : "dark";
-    applyTheme(initialTheme);
-    setBaseLayerForTheme(initialTheme);
-
-    themeToggleBtn.addEventListener("click", function () {
-      const isDark = bodyEl.classList.contains("theme-dark");
-      const newTheme = isDark ? "light" : "dark";
-      applyTheme(newTheme);
-      setBaseLayerForTheme(newTheme);
-      if (window.localStorage) {
-        localStorage.setItem(STORAGE_THEME_KEY, newTheme);
-      }
-    });
-
-    const punten = [];
-    let pendingLatLng = null;
-    let mode = "create";
-    let editingId = null;
-
-    const formPanel = document.getElementById("form-panel");
-    const formTitle = document.getElementById("form-title");
-    const formSubtitle = document.getElementById("form-subtitle");
-    const coordLabel = document.getElementById("coord-label");
-    const naamInput = document.getElementById("punt-naam");
-    const infoInput = document.getElementById("punt-info");
-    const catSelect = document.getElementById("punt-cat");
-    const saveBtn = document.getElementById("save-btn");
-    const cancelBtn = document.getElementById("cancel-btn");
-    const deleteBtn = document.getElementById("delete-btn");
-    const pointCountSpan = document.getElementById("point-count");
-    const catCheckboxes = document.querySelectorAll(".cat-checkbox");
-
-    const dataMenuToggle = document.getElementById("data-menu-toggle");
-    const dataMenu = document.getElementById("data-menu");
-
-    const downloadJsonBtn = document.getElementById("download-json-btn");
-    const uploadJsonBtn = document.getElementById("upload-json-btn");
-    const uploadJsonInput = document.getElementById("upload-json-input");
-
-    const catLabels = {
-      landtank: "Landtank",
-      steiger: "Steiger",
-      installatie: "Installatie",
-      pompkamer: "Pompkamer",
-      leiding: "Leiding"
+    // seed data (zoals jouw voorbeeld)
+    return {
+      today: [
+        { id: "1", title: "Golf 7 – onderhoud", plate:"12-AB-CD", status:"bezig", work:"", parts:"", hours:"", updated: Date.now() },
+        { id: "2", title: "Audi A6 – wachten",  plate:"45-EF-GH", status:"wachten", work:"", parts:"", hours:"", updated: Date.now() },
+        { id: "3", title: "Transit – APK",      plate:"89-IJ-KL", status:"klaar", work:"", parts:"", hours:"", updated: Date.now() },
+      ],
+      archive: []
     };
+  }
 
-    dataMenuToggle.addEventListener("click", function (e) {
-      e.stopPropagation();
-      const isVisible = dataMenu.style.display === "block";
-      dataMenu.style.display = isVisible ? "none" : "block";
+  function saveState(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function showScreen(name){
+    Object.values(screens).forEach(s => s.classList.remove("active"));
+    screens[name].classList.add("active");
+  }
+
+  function statusChip(status){
+    const info = statusInfo[status] || statusInfo.bezig;
+    return info;
+  }
+
+  function renderToday(){
+    $("todayDate").textContent = nowDateLine();
+    const list = $("todayList");
+    list.innerHTML = "";
+
+    state.today.forEach(job => {
+      const info = statusChip(job.status);
+
+      const card = document.createElement("div");
+      card.className = `card ${info.cls}`;
+      card.innerHTML = `
+        <div class="row">
+          <div style="min-width:0">
+            <div class="h" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(job.title)}</div>
+            <div class="meta">${escapeHtml(job.plate)} • <span class="chip" style="margin-top:8px; display:inline-flex;">
+              <span class="dot" style="background:${info.dot}"></span>${info.label}
+            </span></div>
+          </div>
+          <button class="btn">Open</button>
+        </div>
+      `;
+
+      card.querySelector("button").addEventListener("click", () => openJob(job.id));
+      list.appendChild(card);
     });
 
-    document.addEventListener("click", function (e) {
-      if (!dataMenu.contains(e.target) && e.target !== dataMenuToggle) {
-        dataMenu.style.display = "none";
-      }
+    if(state.today.length === 0){
+      list.innerHTML = `<div class="card"><div class="muted">Geen klussen voor vandaag.</div></div>`;
+    }
+  }
+
+  function renderArchive(){
+    const list = $("archiveList");
+    list.innerHTML = "";
+
+    state.archive.forEach(job => {
+      const info = statusChip(job.status);
+      const card = document.createElement("div");
+      card.className = `card ${info.cls}`;
+      card.innerHTML = `
+        <div class="row">
+          <div style="min-width:0">
+            <div class="h" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(job.title)}</div>
+            <div class="meta">${escapeHtml(job.plate)} • <span class="chip" style="margin-top:8px; display:inline-flex;">
+              <span class="dot" style="background:${info.dot}"></span>${info.label}
+            </span></div>
+          </div>
+          <button class="btn">Open</button>
+        </div>
+      `;
+      card.querySelector("button").addEventListener("click", () => openArchivedJob(job.id));
+      list.appendChild(card);
     });
 
-    function buildPopupHtml(punt) {
-      let html =
-        "<strong>" +
-        punt.naam +
-        "</strong><br>" +
-        "Categorie: <em>" +
-        (catLabels[punt.cat] || punt.cat) +
-        "</em>";
-      if (punt.info) {
-        html += "<br><br>" + punt.info.replace(/\n/g, "<br>");
-      }
-      html +=
-        "<div class='popup-meta'>Lat: " +
-        punt.lat.toFixed(5) +
-        ", Lng: " +
-        punt.lng.toFixed(5) +
-        "</div>";
-      html +=
-        "<div class='popup-edit-hint'>" +
-        "<button type='button' class='popup-edit-btn' data-id='" +
-        punt.id +
-        "'>Klik bewerken</button>" +
-        "</div>";
-      return html;
+    if(state.archive.length === 0){
+      list.innerHTML = `<div class="card"><div class="muted">Nog niks in archief.</div></div>`;
+    }
+  }
+
+  let state = loadState();
+  let currentJobId = null;
+  let currentIsArchived = false;
+
+  function openJob(id){
+    currentJobId = id;
+    currentIsArchived = false;
+    const job = state.today.find(j => j.id === id);
+    if(!job) return;
+
+    fillJobScreen(job);
+    showScreen("job");
+  }
+
+  function openArchivedJob(id){
+    currentJobId = id;
+    currentIsArchived = true;
+    const job = state.archive.find(j => j.id === id);
+    if(!job) return;
+
+    fillJobScreen(job);
+    showScreen("job");
+  }
+
+  function fillJobScreen(job){
+    $("jobTitle").textContent = job.title;
+    $("jobSub").textContent = job.plate;
+
+    $("jobStatus").value = job.status;
+    $("jobWork").value = job.work || "";
+    $("jobParts").value = job.parts || "";
+    $("jobHours").value = job.hours || "";
+
+    updateStatusUI(job.status, job.updated);
+  }
+
+  function updateStatusUI(status, updated){
+    const info = statusChip(status);
+    $("chipDot").style.background = info.dot;
+    $("chipText").textContent = info.label;
+
+    const d = new Date(updated || Date.now());
+    $("chipUpdated").textContent = d.toLocaleString("nl-NL", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
+  }
+
+  function getCurrentJob(){
+    return currentIsArchived
+      ? state.archive.find(j => j.id === currentJobId)
+      : state.today.find(j => j.id === currentJobId);
+  }
+
+  function persistCurrentJob(){
+    const job = getCurrentJob();
+    if(!job) return;
+
+    job.status = $("jobStatus").value;
+    job.work = $("jobWork").value;
+    job.parts = $("jobParts").value;
+    job.hours = $("jobHours").value;
+    job.updated = Date.now();
+
+    updateStatusUI(job.status, job.updated);
+    saveState();
+    renderToday();
+    renderArchive();
+  }
+
+  // Events
+  $("navToday").addEventListener("click", () => { renderToday(); showScreen("today"); });
+  $("navArchive").addEventListener("click", () => { renderArchive(); showScreen("archive"); });
+
+  $("btnBackToToday").addEventListener("click", () => { renderToday(); showScreen("today"); });
+
+  ["jobStatus","jobWork","jobParts","jobHours"].forEach(id => {
+    $(id).addEventListener("input", persistCurrentJob);
+    $(id).addEventListener("change", persistCurrentJob);
+  });
+
+  $("btnMarkDone").addEventListener("click", () => {
+    $("jobStatus").value = "klaar";
+    persistCurrentJob();
+  });
+
+  $("btnToArchive").addEventListener("click", () => {
+    const job = getCurrentJob();
+    if(!job) return;
+
+    // Alleen naar archief als 'klaar' (rustig/clean)
+    if(job.status !== "klaar"){
+      alert("Zet status eerst op 'klaar' voordat je archiveert.");
+      return;
     }
 
-    function openFormForCreate(latlng) {
-      mode = "create";
-      editingId = null;
-      pendingLatLng = latlng;
-      formTitle.textContent = "Nieuwe klik toevoegen";
-      formSubtitle.textContent =
-        "Kies de categorie (landtank, steiger, installatie, pompkamer, leiding) en voeg info toe.";
-      coordLabel.textContent =
-        "Lat: " +
-        latlng.lat.toFixed(5) +
-        ", Lng: " +
-        latlng.lng.toFixed(5);
-      naamInput.value = "";
-      infoInput.value = "";
-      catSelect.value = "landtank";
-      deleteBtn.style.display = "none";
-      formPanel.style.display = "block";
-      naamInput.focus();
+    // Verplaats uit today → archive (als het niet al archived is)
+    if(!currentIsArchived){
+      state.today = state.today.filter(j => j.id !== job.id);
+      state.archive.unshift(job);
+      saveState();
+      renderToday();
+      renderArchive();
     }
+    showScreen("archive");
+  });
 
-    function openFormForEdit(punt) {
-      mode = "edit";
-      editingId = punt.id;
-      pendingLatLng = { lat: punt.lat, lng: punt.lng };
-      formTitle.textContent = "Klik bewerken";
-      formSubtitle.textContent =
-        "Pas naam, categorie of info aan. Coördinaten blijven gelijk.";
-      coordLabel.textContent =
-        "Lat: " + punt.lat.toFixed(5) + ", Lng: " + punt.lng.toFixed(5);
-      naamInput.value = punt.naam;
-      infoInput.value = punt.info || "";
-      catSelect.value = punt.cat;
-      deleteBtn.style.display = "inline-flex";
-      formPanel.style.display = "block";
-      naamInput.focus();
+  $("btnNewJob").addEventListener("click", () => {
+    const title = prompt("Nieuwe klus (bijv. 'Polo – remmen'):");
+    if(!title) return;
+    const plate = prompt("Kenteken (optioneel):", "XX-YY-ZZ") || "";
+    const job = {
+      id: String(Date.now()),
+      title: title.trim(),
+      plate: plate.trim(),
+      status: "bezig",
+      work: "",
+      parts: "",
+      hours: "",
+      updated: Date.now()
+    };
+    state.today.unshift(job);
+    saveState();
+    renderToday();
+  });
+
+  $("btnClearArchive").addEventListener("click", () => {
+    if(confirm("Archief leegmaken?")){
+      state.archive = [];
+      saveState();
+      renderArchive();
     }
+  });
 
-    function closeForm() {
-      formPanel.style.display = "none";
-      pendingLatLng = null;
-      mode = "create";
-      editingId = null;
-    }
+  function escapeHtml(str){
+    return String(str ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
 
-    function updatePointCount() {
-      pointCountSpan.textContent = punten.length;
-    }
-
-    function getActiveCats() {
-      const active = [];
-      catCheckboxes.forEach((cb) => {
-        if (cb.checked) {
-          active.push(cb.getAttribute("data-cat"));
-        }
-      });
-      return active;
-    }
-
-    function updateMarkerVisibility() {
-      const active = getActiveCats();
-      punten.forEach((p) => {
-        if (active.includes(p.cat)) {
-          if (!map.hasLayer(p.marker)) {
-            p.marker.addTo(map);
-          }
-        } else {
-          if (map.hasLayer(p.marker)) {
-            map.removeLayer(p.marker);
-          }
-        }
-      });
-    }
-
-    function attachPopupEditHandler(marker, punt) {
-      marker.on("popupopen", function (e) {
-        const container = e.popup.getElement();
-        if (!container) return;
-        const btn = container.querySelector(".popup-edit-btn");
-        if (!btn) return;
-        btn.addEventListener("click", function () {
-          openFormForEdit(punt);
-        });
-      });
-    }
-
-    function serializePunten() {
-      return punten.map((p) => ({
-        id: p.id,
-        naam: p.naam,
-        info: p.info,
-        cat: p.cat,
-        lat: p.lat,
-        lng: p.lng
-      }));
-    }
-
-    function savePuntenToLocalStorage() {
-      if (!window.localStorage) return;
-      try {
-        const data = JSON.stringify(serializePunten());
-        localStorage.setItem(STORAGE_POINTS_KEY, data);
-      } catch (e) {
-        console.warn("Kon kliks niet opslaan in localStorage:", e);
-      }
-    }
-
-    function clearAllPunten() {
-      punten.forEach((p) => {
-        if (p.marker && map.hasLayer(p.marker)) {
-          map.removeLayer(p.marker);
-        }
-      });
-      punten.length = 0;
-      updatePointCount();
-    }
-
-    function loadPuntenFromArray(arr) {
-      clearAllPunten();
-      arr.forEach((raw) => {
-        if (
-          typeof raw.lat !== "number" ||
-          typeof raw.lng !== "number" ||
-          typeof raw.naam !== "string"
-        ) {
-          return;
-        }
-        const punt = {
-          id: raw.id || Date.now() + Math.random(),
-          naam: raw.naam,
-          info: raw.info || "",
-          cat: raw.cat || "installatie",
-          lat: raw.lat,
-          lng: raw.lng,
-          marker: null
-        };
-        const marker = L.marker([punt.lat, punt.lng]);
-        marker.bindPopup(buildPopupHtml(punt));
-        punt.marker = marker;
-        attachPopupEditHandler(marker, punt);
-        punten.push(punt);
-      });
-      updatePointCount();
-      updateMarkerVisibility();
-      savePuntenToLocalStorage();
-    }
-
-    function loadPuntenFromLocalStorage() {
-      if (!window.localStorage) return;
-      const raw = localStorage.getItem(STORAGE_POINTS_KEY);
-      if (!raw) return;
-      try {
-        const arr = JSON.parse(raw);
-        if (!Array.isArray(arr)) return;
-        loadPuntenFromArray(arr);
-      } catch (e) {
-        console.warn("Kon opgeslagen kliks niet lezen:", e);
-      }
-    }
-
-    function saveFiltersToLocalStorage() {
-      if (!window.localStorage) return;
-      const state = {};
-      catCheckboxes.forEach((cb) => {
-        const cat = cb.getAttribute("data-cat");
-        state[cat] = cb.checked;
-      });
-      try {
-        localStorage.setItem(STORAGE_FILTERS_KEY, JSON.stringify(state));
-      } catch (e) {
-        console.warn("Kon filters niet opslaan:", e);
-      }
-    }
-
-    function loadFiltersFromLocalStorage() {
-      if (!window.localStorage) return;
-      const raw = localStorage.getItem(STORAGE_FILTERS_KEY);
-      if (!raw) return;
-      try {
-        const state = JSON.parse(raw);
-        catCheckboxes.forEach((cb) => {
-          const cat = cb.getAttribute("data-cat");
-          if (state && Object.prototype.hasOwnProperty.call(state, cat)) {
-            cb.checked = !!state[cat];
-          }
-        });
-      } catch (e) {
-        console.warn("Kon filters niet lezen:", e);
-      }
-    }
-
-    map.on("click", function (e) {
-      openFormForCreate(e.latlng);
-    });
-
-    cancelBtn.addEventListener("click", function () {
-      closeForm();
-    });
-
-    deleteBtn.addEventListener("click", function () {
-      if (mode !== "edit" || editingId === null) {
-        return;
-      }
-      const index = punten.findIndex((p) => p.id === editingId);
-      if (index === -1) return;
-      const punt = punten[index];
-      if (map.hasLayer(punt.marker)) {
-        map.removeLayer(punt.marker);
-      }
-      punten.splice(index, 1);
-      updatePointCount();
-      updateMarkerVisibility();
-      savePuntenToLocalStorage();
-      closeForm();
-    });
-
-    saveBtn.addEventListener("click", function () {
-      const naam = naamInput.value.trim();
-      const info = infoInput.value.trim();
-      const cat = catSelect.value;
-
-      if (!naam) {
-        alert("Geef een naam / referentie voor de klik.");
-        return;
-      }
-
-      if (mode === "edit" && editingId !== null) {
-        const punt = punten.find((p) => p.id === editingId);
-        if (!punt) {
-          closeForm();
-          return;
-        }
-        punt.naam = naam;
-        punt.info = info;
-        punt.cat = cat;
-        punt.marker.setPopupContent(buildPopupHtml(punt));
-        updateMarkerVisibility();
-        savePuntenToLocalStorage();
-        closeForm();
-        return;
-      }
-
-      if (!pendingLatLng) return;
-
-      const id = Date.now();
-      const punt = {
-        id,
-        naam,
-        info,
-        cat,
-        lat: pendingLatLng.lat,
-        lng: pendingLatLng.lng,
-        marker: null
-      };
-
-      const marker = L.marker(pendingLatLng);
-      marker.bindPopup(buildPopupHtml(punt));
-      punt.marker = marker;
-      attachPopupEditHandler(marker, punt);
-
-      punten.push(punt);
-      updatePointCount();
-      updateMarkerVisibility();
-      savePuntenToLocalStorage();
-      closeForm();
-    });
-
-    catCheckboxes.forEach((cb) => {
-      cb.addEventListener("change", function () {
-        updateMarkerVisibility();
-        saveFiltersToLocalStorage();
-      });
-    });
-
-    downloadJsonBtn.addEventListener("click", function () {
-      if (!punten.length) {
-        alert("Er zijn nog geen kliks om op te slaan.");
-        return;
-      }
-      const dataStr = JSON.stringify(serializePunten(), null, 2);
-      const blob = new Blob([dataStr], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      const now = new Date();
-      const pad = (n) => String(n).padStart(2, "0");
-      const filename =
-        "haven_kliks_" +
-        now.getFullYear() +
-        pad(now.getMonth() + 1) +
-        pad(now.getDate()) +
-        "_" +
-        pad(now.getHours()) +
-        pad(now.getMinutes()) +
-        ".json";
-
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      dataMenu.style.display = "none";
-    });
-
-    uploadJsonBtn.addEventListener("click", function () {
-      uploadJsonInput.value = "";
-      uploadJsonInput.click();
-    });
-
-    uploadJsonInput.addEventListener("change", function () {
-      const file = uploadJsonInput.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        try {
-          const text = e.target.result;
-          const arr = JSON.parse(text);
-          if (!Array.isArray(arr)) {
-            alert("Bestand bevat geen geldige lijst met kliks.");
-            return;
-          }
-          loadPuntenFromArray(arr);
-          alert("JSON succesvol geladen (" + arr.length + " kliks).");
-          dataMenu.style.display = "none";
-        } catch (err) {
-          console.error(err);
-          alert("Kon JSON-bestand niet lezen. Controleer of het geldig is.");
-        }
-      };
-      reader.readAsText(file, "utf-8");
-    });
-
-    loadFiltersFromLocalStorage();
-    updatePointCount();
-    loadPuntenFromLocalStorage();
-  </script>
+  // init
+  saveState();
+  renderToday();
+  renderArchive();
+})();
+</script>
 </body>
 </html>
